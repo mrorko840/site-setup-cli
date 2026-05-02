@@ -11,9 +11,13 @@ source "$BASE_DIR/lib/deploy.sh"
 
 banner
 
-PROJECT_TYPE=$(ask "Project Type (laravel/react/node)")
-DOMAIN=$(ask "Domain Name")
-PROJECT_PATH=$(ask "Project Path (/var/www/example)")
+read -r -p "Project Type (laravel/react/node): " PROJECT_TYPE
+read -r -p "Domain Name: " DOMAIN
+read -r -p "Project Path (/var/www/example): " PROJECT_PATH
+
+[ -z "$PROJECT_TYPE" ] && exit 1
+[ -z "$DOMAIN" ] && exit 1
+[ -z "$PROJECT_PATH" ] && exit 1
 
 deploy_project "$PROJECT_TYPE" "$PROJECT_PATH"
 create_nginx_config "$PROJECT_TYPE" "$DOMAIN" "$PROJECT_PATH"

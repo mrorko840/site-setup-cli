@@ -8,8 +8,11 @@ banner() {
 }
 
 ask() {
-    read -p "$1: " value
-    echo "$value"
+    local prompt="$1"
+    local value
+
+    read -r -p "$prompt: " value
+    printf '%s' "$value"
 }
 
 success() {
