@@ -1,32 +1,35 @@
-#!/bin/bash
-
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+#!/usr/bin/env bash
 
 create_nginx_config() {
-    TYPE=$1
-    DOMAIN=$2
-    PATHDIR=$3
+    local project_type="$1"
+    local domain="$2"
+    local project_path="$3"
+    local template="${BASE_DIR}/templates/${project_type}.conf"
+    local target="/etc/nginx/sites-available/${domain}"
 
-    TEMPLATE="$BASE_DIR/templates/$TYPE.conf"
-    TARGET="/etc/nginx/sites-available/$DOMAIN"
-
-    [ -f "$TEMPLATE" ] || exit 1
+    if [[ ! -f "${template}" ]]; then
+        die "Nginx template not found: ${template}"
+    fi
 
     sed \
-        -e "s|{{DOMAIN}}|$DOMAIN|g" \
-        -e "s|{{ROOT_PATH}}|$PATHDIR|g" \
-        "$TEMPLATE" > "$TARGET"
+        -e "s|{{DOMAIN}}|${domain}|g" \
+        -e "s|{{ROOT_PATH}}|${project_path}|g" \
+        "${template}" > "${target}"
 
-    echo "Nginx config created."
+    success "Nginx config created: ${target}"
 }
 
 enable_site() {
-    DOMAIN=$1
+    local domain="$1"
+    local source="/etc/nginx/sites-available/${domain}"
+    local target="/etc/nginx/sites-enabled/${domain}"
 
-    ln -sf "/etc/nginx/sites-available/$DOMAIN" "/etc/nginx/sites-enabled/$DOMAIN"
+    ln -sfn "${source}" "${target}"
+    success "Site enabled: ${domain}"
 }
 
 reload_nginx() {
     nginx -t
     systemctl reload nginx
+    success "Nginx reloaded."
 }

@@ -1,14 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 deploy_project() {
-    TYPE=$1
-    PATHDIR=$2
+    local project_type="$1"
+    local project_path="$2"
 
-    mkdir -p "$PATHDIR"
-
-    if [ "$TYPE" = "laravel" ]; then
-        chmod -R 775 "$PATHDIR/storage" "$PATHDIR/bootstrap/cache" 2>/dev/null || true
+    if [[ -z "${project_path}" ]]; then
+        die "Project path is empty."
     fi
 
-    echo "Project prepared."
+    mkdir -p "${project_path}"
+
+    if [[ "${project_type}" == "laravel" ]]; then
+        mkdir -p "${project_path}/storage" "${project_path}/bootstrap/cache"
+        chmod -R 775 "${project_path}/storage" "${project_path}/bootstrap/cache"
+    fi
+
+    success "Project directory prepared: ${project_path}"
 }
