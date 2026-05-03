@@ -73,6 +73,25 @@ prompt_project_path() {
     done
 }
 
+prompt_port() {
+    local input=""
+    local port_regex='^[0-9]+$'
+
+    while true; do
+        read_prompt "Port Number (1-65535)" input
+
+        if [[ "${input}" =~ ${port_regex} ]]; then
+            local port_num="${input#0}"
+            if (( port_num >= 1 && port_num <= 65535 )); then
+                PORT="${port_num}"
+                return 0
+            fi
+        fi
+
+        warn "Invalid port number. Please enter a number between 1 and 65535."
+    done
+}
+
 main() {
     trap 'on_error ${LINENO} $?' ERR
 
@@ -82,6 +101,9 @@ main() {
     prompt_project_type
     prompt_domain
     prompt_project_path
+    if [[ "${PROJECT_TYPE}" == "node" ]]; then
+        prompt_port
+    fi
 
     deploy_project "${PROJECT_TYPE}" "${PROJECT_PATH}"
     create_nginx_config "${PROJECT_TYPE}" "${DOMAIN}" "${PROJECT_PATH}"
