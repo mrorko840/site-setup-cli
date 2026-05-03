@@ -73,9 +73,79 @@ prompt_project_path() {
     done
 }
 
+port_listening() {
+    local target_port="$1"
+
+    if command -v ss >/dev/null 2>&1; then
+        ss -H -ltn 2>/dev/null | awk -v p="${target_port}" '
+            {
+                n = split($4, parts, ":")
+                port = parts[n]
+                gsub(/[^0-9]/, "", port)
+                if (port == p) {
+                    found = 1
+                    exit
+                }
+            }
+            END { exit(found ? 0 : 1) }
+        '
+        return $?
+    fi
+
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -nP -iTCP:"${target_port}" -sTCP:LISTEN >/dev/null 2>&1
+        return $?
+    fi
+
+    return 1
+}
+
+show_used_ports_in_range() {
+    local start_port="$1"
+    local end_port="$2"
+    local used_ports=()
+
+    if command -v ss >/dev/null 2>&1; then
+        mapfile -t used_ports < <(
+            ss -H -ltn 2>/dev/null | awk -v start="${start_port}" -v end="${end_port}" '
+                {
+                    n = split($4, parts, ":")
+                    port = parts[n]
+                    gsub(/[^0-9]/, "", port)
+                    if (port ~ /^[0-9]+$/ && port >= start && port <= end) {
+                        print port
+                    }
+                }
+            ' | sort -n -u
+        )
+    elif command -v lsof >/dev/null 2>&1; then
+        mapfile -t used_ports < <(
+            lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null \
+                | awk -v start="${start_port}" -v end="${end_port}" 'NR > 1 {
+                    n = split($9, parts, ":")
+                    port = parts[n]
+                    gsub(/[^0-9]/, "", port)
+                    if (port ~ /^[0-9]+$/ && port >= start && port <= end) {
+                        print port
+                    }
+                }' | sort -n -u
+        )
+    fi
+
+    if (( ${#used_ports[@]} > 0 )); then
+        info "Used ports (${start_port}-${end_port}): ${used_ports[*]}"
+    else
+        info "No used ports found in ${start_port}-${end_port}."
+    fi
+}
+
 prompt_port() {
     local input=""
     local port_regex='^[0-9]+$'
+    local preferred_start=5000
+    local preferred_end=5100
+
+    show_used_ports_in_range "${preferred_start}" "${preferred_end}"
 
     while true; do
         read_prompt "Port Number (1-65535)" input
@@ -83,6 +153,10 @@ prompt_port() {
         if [[ "${input}" =~ ${port_regex} ]]; then
             local port_num="${input#0}"
             if (( port_num >= 1 && port_num <= 65535 )); then
+                if port_listening "${port_num}"; then
+                    warn "Port ${port_num} is already in use. Please choose a different port."
+                    continue
+                fi
                 PORT="${port_num}"
                 return 0
             fi
