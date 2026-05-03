@@ -11,9 +11,14 @@ create_nginx_config() {
         die "Nginx template not found: ${template}"
     fi
 
+    if [[ "${project_type}" == "node" && -z "${PORT:-}" ]]; then
+        die "PORT is required for node projects."
+    fi
+
     sed \
         -e "s|{{DOMAIN}}|${domain}|g" \
         -e "s|{{ROOT_PATH}}|${project_path}|g" \
+        -e "s|{{PORT}}|${PORT:-}|g" \
         "${template}" > "${target}"
 
     success "Nginx config created: ${target}"

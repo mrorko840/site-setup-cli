@@ -21,21 +21,52 @@ require_root() {
 }
 
 prompt_project_type() {
-    local input=""
+    local options=("laravel" "react" "node")
+    local selected_index=0
+    local key=""
+    local i=0
+
+    init_tty
+
+    printf 'Project Type (use up/down arrow, Enter to select):\n' >&"${TTY_FD}"
 
     while true; do
-        read_prompt "Project Type (laravel/react/node)" input
-        input="${input,,}"
+        for i in "${!options[@]}"; do
+            if (( i == selected_index )); then
+                printf '  > %s\n' "${options[$i]}" >&"${TTY_FD}"
+            else
+                printf '    %s\n' "${options[$i]}" >&"${TTY_FD}"
+            fi
+        done
 
-        case "${input}" in
-            laravel|react|node)
-                PROJECT_TYPE="${input}"
+        if ! IFS= read -r -s -n1 -u "${TTY_FD}" key; then
+            printf '\n' >&"${TTY_FD}"
+            die "Input cancelled."
+        fi
+
+        case "${key}" in
+            "")
+                PROJECT_TYPE="${options[$selected_index]}"
+                printf 'Selected project type: %s\n' "${PROJECT_TYPE}" >&"${TTY_FD}"
                 return 0
                 ;;
-            *)
-                warn "Invalid project type. Use: laravel, react, or node."
+            $'\x1b')
+                if IFS= read -r -s -n1 -u "${TTY_FD}" key && [[ "${key}" == "[" ]]; then
+                    if IFS= read -r -s -n1 -u "${TTY_FD}" key; then
+                        case "${key}" in
+                            A)
+                                selected_index=$(( (selected_index - 1 + ${#options[@]}) % ${#options[@]} ))
+                                ;;
+                            B)
+                                selected_index=$(( (selected_index + 1) % ${#options[@]} ))
+                                ;;
+                        esac
+                    fi
+                fi
                 ;;
         esac
+
+        printf '\033[%dA' "${#options[@]}" >&"${TTY_FD}"
     done
 }
 
