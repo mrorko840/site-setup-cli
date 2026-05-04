@@ -26,8 +26,8 @@ main() {
     trap 'on_error ${LINENO}' ERR
     require_root
 
-    printf '[INFO] Installing Site Setup CLI...\n'
-    install_dependencies
+    # printf '[INFO] Installing Site Setup CLI...\n'
+    # install_dependencies
 
     rm -rf "${INSTALL_DIR}"
     git clone --depth 1 "${REPO_URL}" "${INSTALL_DIR}"
