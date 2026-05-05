@@ -14,6 +14,7 @@ create_nginx_config() {
     if [[ "${project_type}" == "node" && -z "${PORT:-}" ]]; then
         die "PORT is required for node projects."
     fi
+    
 
     sed \
         -e "s|{{DOMAIN}}|${domain}|g" \
